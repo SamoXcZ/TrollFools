@@ -1,9 +1,8 @@
 name: Build TrollFools
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
-  pull_request:
     branches: [ "main" ]
 
 jobs:
@@ -12,24 +11,39 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Prepare folders
+      run: mkdir -p TrollFools
 
     - name: Download dylib
       run: |
-        curl -L "https://drive.google.com/uc?export=download&id=17az2NmgbT6YusYsMpd32wyioi4MV_BrY" -o TrollFools/File.dylib
+        echo "Downloading dylib..."
+        curl -L "https://drive.google.com/uc?export=download&id=17az2NmgbT6YusYsMpd32wyioi4MV_BrY" -o TrollFools/File.dylib || true
+        ls -lah TrollFools
 
     - name: Build project
       run: |
-        xcodebuild -project TrollFools.xcodeproj \
+        echo "Building with Xcode..."
+        xcodebuild \
+          -project TrollFools.xcodeproj \
           -scheme TrollFools \
           -configuration Release \
+          -sdk iphoneos \
           -derivedDataPath build \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO | tee xcodebuild.log
 
     - name: Create IPA
       run: |
+        echo "Packaging IPA..."
         mkdir Payload
         cp -r build/Build/Products/Release-iphoneos/TrollFools.app Payload/
         zip -r TrollFools.ipa Payload
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: TrollFools-IPA
+        path: TrollFools.ipa
