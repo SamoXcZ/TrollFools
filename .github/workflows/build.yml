@@ -1,0 +1,43 @@
+name: Build TrollFools
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+    - name: Download dylib
+  run: |
+    curl -L "https://drive.google.com/file/d/17az2NmgbT6YusYsMpd32wyioi4MV_BrY/view" -o TrollFools/FIle.dylib  
+      
+    - name: Build project
+      run: |
+        xcodebuild -project TrollFools.xcodeproj \
+          -scheme TrollFools \
+          -configuration Release \
+          -derivedDataPath build \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+    
+    - name: Create IPA
+      run: |
+        mkdir Payload
+        cp -r build/Build/Products/Release-iphoneos/TrollFools.app Payload/
+        zip -r TrollFools.ipa Payload
+    
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: TrollFools-IPA
+        path: TrollFools.ipa
